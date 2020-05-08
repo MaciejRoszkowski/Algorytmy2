@@ -14,7 +14,7 @@ namespace Algorithm2.Controllers
     public class PathController : ControllerBase
     {
         [HttpGet]
-        public string Gat()
+        public PathWithValues Get()
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
             var cords = new Coordinates[400];
@@ -28,7 +28,7 @@ namespace Algorithm2.Controllers
                 weights[i] = int.Parse(line[2]);
             }
 
-            return "asdf";
+            return new PathWithValues() { Distance = 1234 };
         }
     }
 }
