@@ -7,8 +7,8 @@ namespace Algorithm2.Controllers
 {
     public class PathWithValues
     {
-        public List<int> Nodes { get; set; }
-        public int WeightsSum { get; set; }
-        public double Distance { get; set; }
+        public List<int> nodes { get; set; }
+        public int weightsSum { get; set; }
+        public double distance { get; set; }
     }
 }
