@@ -7,8 +7,25 @@ namespace Algorithm2.Controllers
 {
     public class PathWithValues
     {
-        public List<int> nodes { get; set; }
-        public int weightsSum { get; set; }
-        public double distance { get; set; }
+        public List<int> Nodes { get; set; }
+        public int WeightsSum { get; set; }
+        public double Distance { get; set; }
+
+        public PathWithValues()
+        {
+
+        }
+        public PathWithValues(List<int> nodes, int weightsSum, double distance)
+        {
+            Nodes = nodes;
+            WeightsSum = weightsSum;
+            Distance = distance;
+        }
+
+
+        public PathWithValues Clone()
+        {
+            return new PathWithValues(Nodes, WeightsSum, Distance);
+        }
     }
 }
