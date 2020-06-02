@@ -13,7 +13,7 @@ namespace Algorithm2.Controllers
     [ApiController]
     public class PathController : ControllerBase
     {
-        
+
         [HttpGet]
         public PathWithValues Get()
         {
@@ -36,14 +36,17 @@ namespace Algorithm2.Controllers
             var distances = CalculateDistances(cords);
 
 
-            //vns
-            //ils
+            //ils - dość prosty, szkasz n razy konstrułujesz nową trasę, potem dla każdej trasy m razy coś w
+            //niej losowo zmieniasz i patrzysz czy coś to dało 
 
+            //vns - dość podobny do ils tyle, że kostrułujesz ją raz potem szukasz rozwiązania, usuwasz np 1 node => local, 
+            //jak nie ma nic lepszego to usuwasz 2 nody, jak się poprawi to od początku, aż dojdziesz do jakiejś dużej liczy 
+            //lub czas się skończy
 
             int min = 12500;
 
             var result = GeneratePath(distances, weights, min, 0);
-
+            LocalSearch2Opt(result, distances, weights);
             LocalSearchInsert(result, distances, weights, min);
 
             return result;
@@ -82,7 +85,7 @@ namespace Algorithm2.Controllers
 
         public double[,] CalculateDistances(Coordinates[] cords)
         {
-            var distances = new double[cords.Length, cords.Length];   
+            var distances = new double[cords.Length, cords.Length];
             for (int i = 0; i < cords.Length; i++)
             {
                 for (int j = i; j < cords.Length; j++)
@@ -168,19 +171,21 @@ namespace Algorithm2.Controllers
 
         private void Insert(PathWithValues path, double[,] distances, int[] weights)
         {
-            //bool isBetter = false;
             int nodesCount = weights.Count();
 
-            var bestTmpPath = path.Clone();
-            //var nodesToCheck = new List<int>();
 
             var tmpDistance = path.Distance;
             double bestH = 0;
             int bestFirst = 0;
-            int bestInsertedNode =0;
+            int bestInsertedNode = 0;
             double bestDistanceAdded = 0;
             int bestWeight = 0;
-            // h = weight/distance have to big
+
+            int first;
+            int second;
+            double distanceAdded = 0;
+            double newH = 0;
+            // h = weight/distance have to be big
 
 
             for (int i = 0; i < nodesCount; i++)
@@ -190,10 +195,11 @@ namespace Algorithm2.Controllers
                     int weight = weights[i];
                     for (int j = 0; j < path.Nodes.Count - 1; j++)
                     {
-                        int first = path.Nodes[j];
-                        int second = path.Nodes[j + 1];
-                        double distnceAdded = distances[first, i] + distances[i, second] - distances[first, second];
-                        double newH = weight / distnceAdded;
+                        first = path.Nodes[j];
+                        second = path.Nodes[j + 1];
+                        distanceAdded = distances[first, i] + distances[i, second] - distances[first, second];
+                        distanceAdded = distanceAdded == 0 ? 0.000001 : distanceAdded;
+                        newH = weight / distanceAdded;
 
                         //rather imposible, but we have to check
                         if (newH < 0)
@@ -206,15 +212,33 @@ namespace Algorithm2.Controllers
                             bestH = newH;
                             bestFirst = first;
                             bestInsertedNode = i;
-                            bestDistanceAdded = distnceAdded;
+                            bestDistanceAdded = distanceAdded;
                             bestWeight = weight;
                         }
 
 
                     }
+                    first = path.Nodes.Last();
+                    second = path.Nodes.First();
 
-                    //last 
+                    distanceAdded = distances[first, i] + distances[i, second] - distances[first, second];
+                    distanceAdded = distanceAdded == 0 ? 0.000001 : distanceAdded;
+                    newH = weight / distanceAdded;
 
+                    //rather imposible, but we have to check
+                    if (newH < 0)
+                    {
+                        newH = newH * -100000;
+                    }
+
+                    if (newH > bestH)
+                    {
+                        bestH = newH;
+                        bestFirst = first;
+                        bestInsertedNode = i;
+                        bestDistanceAdded = distanceAdded;
+                        bestWeight = weight;
+                    }
                 }
             }
 
@@ -233,11 +257,51 @@ namespace Algorithm2.Controllers
 
             //return isBetter;
         }
-        
-
-        private void Opt()
+        private void LocalSearch2Opt(PathWithValues path, double[,] distances, int[] weights)
         {
+            bool isBetter = true;
+            while (isBetter)
+            {
+                isBetter = Opt2(path, distances, weights);
+            }
+        }
 
+        private bool Opt2(PathWithValues path, double[,] distances, int[] weights)
+        {
+            var tmpNodes = path.CloneNodes();
+
+            int totalNodesCount = path.Nodes.Count;
+            double distDif = 0;
+
+            for (int i = 0; i < totalNodesCount - 2; i++)
+            {
+                for (int j = i + 2; j < totalNodesCount; j++)
+                {
+                    if (j == totalNodesCount - 1)
+                    {
+                        distDif = distances[path.GetNodeAt(i), path.GetNodeAt(j)] + distances[path.GetNodeAt(i + 1), path.GetNodeAt(0)] 
+                            - (distances[path.GetNodeAt(i), path.GetNodeAt(i + 1)] + distances[path.GetNodeAt(j), path.GetNodeAt(0)]);
+
+                    }
+                    else
+                    {
+                        distDif = distances[path.GetNodeAt(i), path.GetNodeAt(j)] + distances[path.GetNodeAt(i + 1), path.GetNodeAt(j + 1)] 
+                            - distances[path.GetNodeAt(i), path.GetNodeAt(i + 1)] - distances[path.GetNodeAt(j), path.GetNodeAt(j + 1)];
+                    }
+
+                    if (distDif < 0)
+                    {
+                        path.Distance += distDif;
+                        for (int k = 0; k < j - i; k++)
+                        {
+                            path.Nodes[i + k + 1] = tmpNodes[j - k];
+                        }
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         private bool Remove()

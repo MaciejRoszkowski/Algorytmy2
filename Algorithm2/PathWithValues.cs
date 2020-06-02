@@ -27,5 +27,16 @@ namespace Algorithm2.Controllers
         {
             return new PathWithValues(Nodes, WeightsSum, Distance);
         }
+
+        public List<int> CloneNodes()
+        {
+            var list = new List<int>();
+            for (int i = 0; i < Nodes.Count; i++)
+            {
+                list.Add(Nodes[i]);
+            }
+            return list;
+        }
+        public int GetNodeAt(int node) => Nodes[node];
     }
 }
