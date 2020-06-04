@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -36,18 +37,15 @@ namespace Algorithm2.Controllers
             var distances = CalculateDistances(cords);
 
 
-            //ils - dość prosty, szkasz n razy konstrułujesz nową trasę, potem dla każdej trasy m razy coś w
-            //niej losowo zmieniasz i patrzysz czy coś to dało 
-
-            //vns - dość podobny do ils tyle, że kostrułujesz ją raz potem szukasz rozwiązania, usuwasz np 1 node => local, 
-            //jak nie ma nic lepszego to usuwasz 2 nody, jak się poprawi to od początku, aż dojdziesz do jakiejś dużej liczy 
-            //lub czas się skończy
-
             int min = 12500;
+            var result = ILS(distances, weights, min, 0);
 
-            var result = GeneratePath(distances, weights, min, 0);
-            LocalSearch2Opt(result, distances, weights);
-            LocalSearchInsert(result, distances, weights, min);
+
+            //int min = 12500;
+
+            //var result = GeneratePath(distances, weights, min, 0);
+            //LocalSearch2Opt(result, distances, weights);
+            //LocalSearchInsert(result, distances, weights, min);
 
             return result;
         }
@@ -102,7 +100,7 @@ namespace Algorithm2.Controllers
         {
             var bestResult = GeneratePathSingle(distances, weights, 12500, 0);
 
-            for (int i = 0; i < 100; i++)
+            for (int i = 0; i < 1000; i++)
             {
 
                 var result = GeneratePathSingle(distances, weights, 12500, 0);
@@ -121,23 +119,27 @@ namespace Algorithm2.Controllers
             var path = new List<int>() { startingPoint };
             int weightsSum = 0;
             double pathLength = 0;
-
+            var visited = new Dictionary<int, bool>();
+            for (int i = 0; i < weights.Length; i++)
+            {
+                visited[i] = false;
+            }
             int currentPoint = 0;
 
             while (weightsSum < minGain)
             {
                 double bestRatio = 0;
                 int bestIndex = 0;
-                if (random.Next(1, 100) == 1)
+                if (random.Next(1, 100) == 5)
                 {
-                    var listOfNumbers = Enumerable.Range(0, weights.Length - 1).Where(x => !path.Contains(x)).ToList();
+                    var listOfNumbers = Enumerable.Range(0, weights.Length - 1).Where(x => !visited[x]).ToList();
                     bestIndex = listOfNumbers[random.Next(listOfNumbers.Count)];
                 }
                 else
                 {
                     for (int i = 0; i < weights.Length; i++)
                     {
-                        if (path.Contains(i))
+                        if (visited[i])
                         {
                             continue;
                         }
@@ -154,6 +156,7 @@ namespace Algorithm2.Controllers
                 pathLength += distances[currentPoint, bestIndex];
                 weightsSum += weights[bestIndex];
                 path.Add(bestIndex);
+                visited[bestIndex] = true;
                 currentPoint = bestIndex;
 
             }
@@ -161,12 +164,15 @@ namespace Algorithm2.Controllers
             return new PathWithValues() { Distance = pathLength, WeightsSum = weightsSum, Nodes = path };
         }
 
-        private void LocalSearchInsert(PathWithValues path, double[,] distances, int[] weights, int min)
+        private bool LocalSearchInsert(PathWithValues path, double[,] distances, int[] weights, int min)
         {
-            while (path.WeightsSum < 12500)
+            bool isBetter = false;
+            while (path.WeightsSum < min)
             {
                 Insert(path, distances, weights);
+                isBetter = true;
             }
+            return isBetter;
         }
 
         private void Insert(PathWithValues path, double[,] distances, int[] weights)
@@ -174,7 +180,6 @@ namespace Algorithm2.Controllers
             int nodesCount = weights.Count();
 
 
-            var tmpDistance = path.Distance;
             double bestH = 0;
             int bestFirst = 0;
             int bestInsertedNode = 0;
@@ -198,14 +203,20 @@ namespace Algorithm2.Controllers
                         first = path.Nodes[j];
                         second = path.Nodes[j + 1];
                         distanceAdded = distances[first, i] + distances[i, second] - distances[first, second];
-                        distanceAdded = distanceAdded == 0 ? 0.000001 : distanceAdded;
-                        newH = weight / distanceAdded;
-
-                        //rather imposible, but we have to check
-                        if (newH < 0)
+                        if (distanceAdded == 0)
                         {
-                            newH = newH * -100000;
+                            newH = -weight;
                         }
+                        else
+                        {
+                            newH = weight / distanceAdded;
+                        }
+
+                        ////rather imposible, but we have to check
+                        //if (newH < 0)
+                        //{
+                        //    newH = newH * -100000;
+                        //}
 
                         if (newH > bestH)
                         {
@@ -222,14 +233,24 @@ namespace Algorithm2.Controllers
                     second = path.Nodes.First();
 
                     distanceAdded = distances[first, i] + distances[i, second] - distances[first, second];
-                    distanceAdded = distanceAdded == 0 ? 0.000001 : distanceAdded;
-                    newH = weight / distanceAdded;
+                    //distanceAdded = distanceAdded == 0 ? 1 : distanceAdded;
 
-                    //rather imposible, but we have to check
-                    if (newH < 0)
+                    //newH = weight / distanceAdded;
+
+                    if (distanceAdded == 0)
                     {
-                        newH = newH * -100000;
+                        newH = -weight;
                     }
+                    else
+                    {
+                        newH = weight / distanceAdded;
+                    }
+
+                    ////rather imposible, but we have to check
+                    //if (newH < 0)
+                    //{
+                    //    newH = newH * -100000;
+                    //}
 
                     if (newH > bestH)
                     {
@@ -241,7 +262,6 @@ namespace Algorithm2.Controllers
                     }
                 }
             }
-
             path.Distance += bestDistanceAdded;
             path.WeightsSum += bestWeight;
             int index = path.Nodes.IndexOf(bestFirst);
@@ -254,6 +274,7 @@ namespace Algorithm2.Controllers
                 path.Nodes.Add(bestInsertedNode);
             }
 
+            var asdf = RecalculateDist(path, distances, weights);
 
             //return isBetter;
         }
@@ -273,9 +294,9 @@ namespace Algorithm2.Controllers
             int totalNodesCount = path.Nodes.Count;
             double distDif = 0;
 
-            for (int i = 0; i < totalNodesCount - 2; i++)
+            for (int i = 0; i < totalNodesCount - 3; i++)
             {
-                for (int j = i + 2; j < totalNodesCount; j++)
+                for (int j = i + 2; j < totalNodesCount -1; j++)
                 {
                     if (j == totalNodesCount - 1)
                     {
@@ -296,6 +317,7 @@ namespace Algorithm2.Controllers
                         {
                             path.Nodes[i + k + 1] = tmpNodes[j - k];
                         }
+                        var asdf = RecalculateDist(path, distances, weights);
                         return true;
                     }
                 }
@@ -309,7 +331,131 @@ namespace Algorithm2.Controllers
             return false;
         }
 
+        //disturb
+        private void RemoveRandomPath(PathWithValues path, double[,] distances, int[] weights, int degree)
+        {
+            var random = new Random();
+            var startingPoint = random.Next(1, path.Nodes.Count - 2 - degree * 5);
+
+            var pathCopy = path.CloneNodes();
+
+            double dist = 0;
+            int weightsSum = 0;
+            
+
+            for (int i = 0; i < 5 * degree  ; i++)
+            {
+                dist -= distances[pathCopy[startingPoint + i], pathCopy[startingPoint + i + 1]];
+                weightsSum -= weights[pathCopy[startingPoint + i + 1]];
+                //path.Nodes.RemoveAt(startingPoint + 1);
+            }
+
+            dist -= distances[pathCopy[startingPoint + (5 * degree)], pathCopy[startingPoint + 1 + (5 * degree)]];
+            dist += distances[pathCopy[startingPoint], pathCopy[startingPoint + 1 + (5 * degree)]];
+
+            path.Distance += dist;
+            path.WeightsSum += weightsSum;
+            path.Nodes.RemoveRange(startingPoint + 1, degree * 5);
+            path.Distance = RecalculateDist(path, distances, weights);
+            //var asdf = RecalculateDist(path, distances);
+
+        }
 
 
+        private PathWithValues VNS(double[,] distances, int[] weights, int minGain, int startingPoint)
+        {
+
+            var result = GeneratePath(distances, weights, minGain, startingPoint);
+            LocalSearch(result, distances, weights, minGain);
+            int k = 1;
+            while (k < 4)
+            {
+                var tmpT = result.Clone();
+                RemoveRandomPath(tmpT, distances, weights, k);
+                LocalSearch(tmpT, distances, weights, minGain);
+
+                if (tmpT.Distance < result.Distance)
+                {
+                    result = tmpT;
+                    k = 1;
+                }
+                else
+                {
+                    k++;
+                }
+            }
+            return result;
+        }
+
+        private PathWithValues ILS(double[,] distances, int[] weights, int minGain, int startingPoint)
+        {
+            var result = GeneratePath(distances, weights, minGain, startingPoint);
+            LocalSearch(result, distances, weights, minGain);
+
+            for (int i = 0; i < 10; i++)
+            {
+                var pathLocal = GeneratePath(distances, weights, minGain, startingPoint);
+                LocalSearch(pathLocal, distances, weights, minGain);
+                for (int j = 0; j < 50; j++)
+                {
+                    var tmpT = pathLocal.Clone();
+                    RemoveRandomPath(tmpT, distances, weights, 2);
+                    LocalSearch(tmpT, distances, weights, minGain);
+                    if (tmpT.Distance < result.Distance)
+                    {
+                        result = tmpT;
+                    }
+                    if (tmpT.Distance < pathLocal.Distance)
+                    {
+                        pathLocal = tmpT;
+                    }
+                }
+            }
+
+
+
+
+            //LocalSearch2Opt(result, distances, weights);
+            //LocalSearchInsert(result, distances, weights, minGain);
+
+            return result;
+        }
+
+        private void LocalSearch(PathWithValues path,double[,] distances, int[] weights, int minGain)
+        {
+            LocalSearch2Opt(path, distances, weights);
+            if(LocalSearchInsert(path, distances, weights, minGain))
+            {
+                LocalSearch2Opt(path, distances, weights);
+
+            }
+        }
+        private double RecalculateDist(PathWithValues path, double[,] distances, int[] weights)
+        {
+            double newDist = 0;
+            int newWeight = 0;
+            for (int i = 0; i < path.Nodes.Count - 1; i++)
+            {
+                newDist += distances[path.GetNodeAt(i), path.GetNodeAt(i + 1)];
+                newWeight += weights[path.GetNodeAt(i)];
+            }
+            newDist += distances[path.GetNodeAt(path.Nodes.Count - 1), path.GetNodeAt(0)];
+            newWeight += weights[path.GetNodeAt(path.Nodes.Count - 1)];
+
+            if (path.Distance != newDist)
+            {
+                path.Distance = newDist;
+                //asdasfa
+                int a = 1;
+                //throw new Exception();
+            }
+            if (newWeight != path.WeightsSum)
+            {
+                path.WeightsSum = newWeight;
+                int a = 1;
+            }
+
+            return newDist;
+        }
     }
 }
