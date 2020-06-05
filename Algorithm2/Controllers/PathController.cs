@@ -15,40 +15,40 @@ namespace Algorithm2.Controllers
     public class PathController : ControllerBase
     {
 
-        [HttpGet]
-        public PathWithValues Get()
-        {
-            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
+        //[HttpGet]
+        //public PathWithValues Get()
+        //{
+        //    Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
 
-            var lines = System.IO.File.ReadAllLines("test.txt");
-            var style = NumberStyles.AllowExponent | NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign;
-            var cordCount = int.Parse(lines[0]);
+        //    var lines = System.IO.File.ReadAllLines("test.txt");
+        //    var style = NumberStyles.AllowExponent | NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign;
+        //    var cordCount = int.Parse(lines[0]);
 
-            var cords = new Coordinates[cordCount];
-            var weights = new int[cordCount];
+        //    var cords = new Coordinates[cordCount];
+        //    var weights = new int[cordCount];
 
-            for (int i = 0; i < cordCount; i++)
-            {
-                var line = lines[i + 1].Split(' ');
-                cords[i] = new Coordinates(double.Parse(line[0], style), double.Parse(line[1], style));
-                weights[i] = int.Parse(line[2]);
-            }
+        //    for (int i = 0; i < cordCount; i++)
+        //    {
+        //        var line = lines[i + 1].Split(' ');
+        //        cords[i] = new Coordinates(double.Parse(line[0], style), double.Parse(line[1], style));
+        //        weights[i] = int.Parse(line[2]);
+        //    }
 
-            var distances = CalculateDistances(cords);
-
-
-            int min = 12500;
-            var result = VNS(distances, weights, min, 0);
+        //    var distances = CalculateDistances(cords);
 
 
-            //int min = 12500;
+        //    int min = 12500;
+        //    var result = ILS(distances, weights, min, 0);
 
-            //var result = GeneratePath(distances, weights, min, 0);
-            //LocalSearch2Opt(result, distances, weights);
-            //LocalSearchInsert(result, distances, weights, min);
 
-            return result;
-        }
+        //    //int min = 12500;
+
+        //    //var result = GeneratePath(distances, weights, min, 0);
+        //    //LocalSearch2Opt(result, distances, weights);
+        //    //LocalSearchInsert(result, distances, weights, min);
+
+        //    return result;
+        //}
 
         [HttpGet("getPoints")]
         public Points GetPoints()
@@ -95,12 +95,68 @@ namespace Algorithm2.Controllers
             }
             return distances;
         }
+        
+        [HttpGet("vns")]
+        public PathWithValues GetVns()
+        {
+            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
+
+            var lines = System.IO.File.ReadAllLines("test.txt");
+            var style = NumberStyles.AllowExponent | NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign;
+            var cordCount = int.Parse(lines[0]);
+
+            var cords = new Coordinates[cordCount];
+            var weights = new int[cordCount];
+
+            for (int i = 0; i < cordCount; i++)
+            {
+                var line = lines[i + 1].Split(' ');
+                cords[i] = new Coordinates(double.Parse(line[0], style), double.Parse(line[1], style));
+                weights[i] = int.Parse(line[2]);
+            }
+
+            var distances = CalculateDistances(cords);
+
+
+            int min = 12500;
+            var result = VNS(distances, weights, min, 0);
+
+            return result;
+        }
+
+        [HttpGet("ils")]
+        public PathWithValues GetIls()
+        {
+            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
+
+            var lines = System.IO.File.ReadAllLines("test.txt");
+            var style = NumberStyles.AllowExponent | NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign;
+            var cordCount = int.Parse(lines[0]);
+
+            var cords = new Coordinates[cordCount];
+            var weights = new int[cordCount];
+
+            for (int i = 0; i < cordCount; i++)
+            {
+                var line = lines[i + 1].Split(' ');
+                cords[i] = new Coordinates(double.Parse(line[0], style), double.Parse(line[1], style));
+                weights[i] = int.Parse(line[2]);
+            }
+
+            var distances = CalculateDistances(cords);
+
+
+            int min = 12500;
+            var result = ILS(distances, weights, min, 0);
+
+            return result;
+        }
 
         private PathWithValues GeneratePath(double[,] distances, int[] weights, int minGain, int startingPoint)
         {
             var bestResult = GeneratePathSingle(distances, weights, 12500, 0);
 
-            for (int i = 0; i < 1000; i++)
+            for (int i = 0; i < 100; i++)
             {
 
                 var result = GeneratePathSingle(distances, weights, 12500, 0);
@@ -261,7 +317,7 @@ namespace Algorithm2.Controllers
                 path.Nodes.Add(bestInsertedNode);
             }
 
-            //var asdf = RecalculateDist(path, distances, weights);
+            RecalculateDist(path, distances, weights);
 
             //return isBetter;
         }
@@ -304,7 +360,7 @@ namespace Algorithm2.Controllers
                         {
                             path.Nodes[i + k + 1] = tmpNodes[j - k];
                         }
-                        //var asdf = RecalculateDist(path, distances, weights);
+                        RecalculateDist(path, distances, weights);
                         return true;
                     }
                 }
@@ -321,6 +377,7 @@ namespace Algorithm2.Controllers
         //disturb
         private void RemoveRandomPath(PathWithValues path, double[,] distances, int[] weights, int degree)
         {
+            RecalculateDist(path, distances, weights);
             var random = new Random();
             var startingPoint = random.Next(1, path.Nodes.Count - 2 - (degree * 5));
 
@@ -343,7 +400,7 @@ namespace Algorithm2.Controllers
             path.Distance += dist;
             path.WeightsSum += weightsSum;
             path.Nodes.RemoveRange(startingPoint + 1, degree * 5);
-            path.Distance = RecalculateDist(path, distances, weights);
+            RecalculateDist(path, distances, weights);
             //var asdf = RecalculateDist(path, distances);
 
         }
@@ -353,6 +410,7 @@ namespace Algorithm2.Controllers
         {
 
             var result = GeneratePath(distances, weights, minGain, startingPoint);
+            var tmpT = result.Clone();
             LocalSearch(result, distances, weights, minGain);
             for (int i = 0; i < 200; i++)
             {
@@ -360,13 +418,20 @@ namespace Algorithm2.Controllers
 
                 while (k < 3)
                 {
-                    var tmpT = result.Clone();
+                    RecalculateDist(result, distances, weights);
+                    tmpT = result.Clone();
                     RemoveRandomPath(tmpT, distances, weights, k);
                     LocalSearch(tmpT, distances, weights, minGain);
-
+                    RecalculateDist(tmpT, distances, weights);
                     if (tmpT.Distance < result.Distance)
                     {
-                        result = tmpT;
+                        result = tmpT.Clone();
+                        RecalculateDist(tmpT, distances, weights);
+
+                        RecalculateDist(result, distances, weights);
+
+
+
                         k = 1;
                     }
                     else
@@ -375,6 +440,7 @@ namespace Algorithm2.Controllers
                     }
                 }
             }
+            RecalculateDist(result, distances, weights);
             return result;
         }
 
@@ -383,7 +449,7 @@ namespace Algorithm2.Controllers
             var result = GeneratePath(distances, weights, minGain, startingPoint);
             LocalSearch(result, distances, weights, minGain);
 
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < 5; i++)
             {
                 var pathLocal = GeneratePath(distances, weights, minGain, startingPoint);
                 LocalSearch(pathLocal, distances, weights, minGain);
@@ -404,7 +470,7 @@ namespace Algorithm2.Controllers
             }
 
 
-
+            RecalculateDist(result, distances, weights);
 
             //LocalSearch2Opt(result, distances, weights);
             //LocalSearchInsert(result, distances, weights, minGain);
@@ -420,9 +486,12 @@ namespace Algorithm2.Controllers
                 LocalSearch2Opt(path, distances, weights);
 
             }
+
+            RecalculateDist(path, distances, weights);
         }
         private double RecalculateDist(PathWithValues path, double[,] distances, int[] weights)
         {
+            return 1;
             double newDist = 0;
             int newWeight = 0;
             for (int i = 0; i < path.Nodes.Count - 1; i++)
@@ -437,12 +506,14 @@ namespace Algorithm2.Controllers
             {
                 //asdasfa
                 int a = 1;
-                //throw new Exception();
-                path.Distance = newDist;
+                throw new Exception();
+                //path.Distance = newDist;
 
             }
             if (newWeight != path.WeightsSum)
             {
+                throw new Exception();
+
                 path.WeightsSum = newWeight;
                 int a = 1;
             }

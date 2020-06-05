@@ -25,7 +25,7 @@ namespace Algorithm2.Controllers
 
         public PathWithValues Clone()
         {
-            return new PathWithValues(Nodes, WeightsSum, Distance);
+            return new PathWithValues(CloneNodes(), WeightsSum, Distance);
         }
 
         public List<int> CloneNodes()
