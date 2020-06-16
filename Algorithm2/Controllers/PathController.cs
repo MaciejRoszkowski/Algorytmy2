@@ -8,6 +8,13 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
+
+/// <summary>
+/// TODO: zmieniać na 1base index, albo dane mapować z 1base na 0base; algorytmy elegancko ugenerycznić 
+/// 
+/// </summary>
+
+
 namespace Algorithm2.Controllers
 {
     [Route("[controller]")]
@@ -84,7 +91,7 @@ namespace Algorithm2.Controllers
         public double[,] CalculateDistances(Coordinates[] cords)
         {
             var distances = new double[cords.Length, cords.Length];
-            for (int i = 0; i < cords.Length; i++)
+            for (int i = 1; i < cords.Length; i++)
             {
                 for (int j = i; j < cords.Length; j++)
                 {
@@ -95,7 +102,7 @@ namespace Algorithm2.Controllers
             }
             return distances;
         }
-        
+
         [HttpGet("vns")]
         public PathWithValues GetVns()
         {
@@ -105,21 +112,22 @@ namespace Algorithm2.Controllers
             var style = NumberStyles.AllowExponent | NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign;
             var cordCount = int.Parse(lines[0]);
 
-            var cords = new Coordinates[cordCount];
-            var weights = new int[cordCount];
+            var cords = new Coordinates[cordCount+1];
+            var weights = new int[cordCount+1];
 
             for (int i = 0; i < cordCount; i++)
             {
                 var line = lines[i + 1].Split(' ');
-                cords[i] = new Coordinates(double.Parse(line[0], style), double.Parse(line[1], style));
-                weights[i] = int.Parse(line[2]);
+                cords[i + 1] = new Coordinates(double.Parse(line[0], style), double.Parse(line[1], style));
+                weights[i + 1] = int.Parse(line[2]);
             }
 
             var distances = CalculateDistances(cords);
 
 
             int min = 12500;
-            var result = VNS(distances, weights, min, 0);
+            int startingPoint = 1;
+            var result = VNS(distances, weights, min, startingPoint);
 
             return result;
         }
@@ -133,33 +141,42 @@ namespace Algorithm2.Controllers
             var style = NumberStyles.AllowExponent | NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign;
             var cordCount = int.Parse(lines[0]);
 
-            var cords = new Coordinates[cordCount];
-            var weights = new int[cordCount];
+            var cords = new Coordinates[cordCount + 1];
+            var weights = new int[cordCount + 1];
 
+            //cords[0] = new Coordinates(0, 0);
             for (int i = 0; i < cordCount; i++)
             {
                 var line = lines[i + 1].Split(' ');
-                cords[i] = new Coordinates(double.Parse(line[0], style), double.Parse(line[1], style));
-                weights[i] = int.Parse(line[2]);
+                cords[i + 1] = new Coordinates(double.Parse(line[0], style), double.Parse(line[1], style));
+                weights[i + 1] = int.Parse(line[2]);
             }
 
             var distances = CalculateDistances(cords);
 
 
             int min = 12500;
-            var result = ILS(distances, weights, min, 0);
+            int startingPoint = 1;
+            var result = ILS(distances, weights, min, startingPoint);
 
             return result;
         }
 
+
+
+
+        //here real data
+
+
+
         private PathWithValues GeneratePath(double[,] distances, int[] weights, int minGain, int startingPoint)
         {
-            var bestResult = GeneratePathSingle(distances, weights, 12500, 0);
+            var bestResult = GeneratePathSingle(distances, weights, minGain, startingPoint);
 
             for (int i = 0; i < 100; i++)
             {
 
-                var result = GeneratePathSingle(distances, weights, 12500, 0);
+                var result = GeneratePathSingle(distances, weights, minGain, startingPoint);
                 if (bestResult.Distance > result.Distance)
                 {
                     bestResult = result;
@@ -168,6 +185,7 @@ namespace Algorithm2.Controllers
 
             return bestResult;
         }
+
 
         private PathWithValues GeneratePathSingle(double[,] distances, int[] weights, int minGain, int startingPoint)
         {
@@ -180,20 +198,22 @@ namespace Algorithm2.Controllers
             {
                 visited[i] = false;
             }
-            int currentPoint = 0;
+            int currentPoint = startingPoint;
+            visited[0] = true;
+            visited[startingPoint] = true;
 
             while (weightsSum < minGain)
             {
                 double bestRatio = 0;
                 int bestIndex = 0;
-                if (random.Next(1, 100) == 5)
+                if (random.Next(100) == 5)
                 {
-                    var listOfNumbers = Enumerable.Range(0, weights.Length - 1).Where(x => !visited[x]).ToList();
+                    var listOfNumbers = Enumerable.Range(1, weights.Length - 1).Where(x => !visited[x]).ToList();
                     bestIndex = listOfNumbers[random.Next(listOfNumbers.Count)];
                 }
                 else
                 {
-                    for (int i = 0; i < weights.Length; i++)
+                    for (int i = 1; i < weights.Length; i++)
                     {
                         if (visited[i])
                         {
@@ -249,7 +269,7 @@ namespace Algorithm2.Controllers
             // h = weight/distance have to be big
 
 
-            for (int i = 0; i < nodesCount; i++)
+            for (int i = 1; i < nodesCount; i++)
             {
                 if (!path.Nodes.Contains(i))
                 {
@@ -337,9 +357,9 @@ namespace Algorithm2.Controllers
             int totalNodesCount = path.Nodes.Count;
             double distDif = 0;
 
-            for (int i = 0; i < totalNodesCount - 3; i++)
+            for (int i = 0; i < totalNodesCount - 2; i++)
             {
-                for (int j = i + 2; j < totalNodesCount - 1; j++)
+                for (int j = i + 2; j < totalNodesCount; j++)
                 {
                     if (j == totalNodesCount - 1)
                     {
@@ -369,17 +389,12 @@ namespace Algorithm2.Controllers
             return false;
         }
 
-        private bool Remove()
-        {
-            return false;
-        }
-
         //disturb
         private void RemoveRandomPath(PathWithValues path, double[,] distances, int[] weights, int degree)
         {
             RecalculateDist(path, distances, weights);
             var random = new Random();
-            var startingPoint = random.Next(1, path.Nodes.Count - 2 - (degree * 5));
+            var startingPoint = random.Next(2, path.Nodes.Count - 2 - (degree * 5));
 
             var pathCopy = path.CloneNodes();
 
@@ -412,7 +427,7 @@ namespace Algorithm2.Controllers
             var result = GeneratePath(distances, weights, minGain, startingPoint);
             var tmpT = result.Clone();
             LocalSearch(result, distances, weights, minGain);
-            for (int i = 0; i < 200; i++)
+            for (int i = 0; i < 300; i++)
             {
                 int k = 1;
 
@@ -449,7 +464,7 @@ namespace Algorithm2.Controllers
             var result = GeneratePath(distances, weights, minGain, startingPoint);
             LocalSearch(result, distances, weights, minGain);
 
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < 10; i++)
             {
                 var pathLocal = GeneratePath(distances, weights, minGain, startingPoint);
                 LocalSearch(pathLocal, distances, weights, minGain);
@@ -489,9 +504,9 @@ namespace Algorithm2.Controllers
 
             RecalculateDist(path, distances, weights);
         }
-        private double RecalculateDist(PathWithValues path, double[,] distances, int[] weights)
+        private void RecalculateDist(PathWithValues path, double[,] distances, int[] weights)
         {
-            return 1;
+            return;
             double newDist = 0;
             int newWeight = 0;
             for (int i = 0; i < path.Nodes.Count - 1; i++)
@@ -517,8 +532,6 @@ namespace Algorithm2.Controllers
                 path.WeightsSum = newWeight;
                 int a = 1;
             }
-
-            return newDist;
         }
     }
 }
