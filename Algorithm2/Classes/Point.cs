@@ -11,5 +11,6 @@ namespace Algorithm2.Controllers
         public double latitude { get; set; }
         public double longtitude { get; set; }
         public string name { get; set; }
+        public int weight { get; set; }
     }
 }

@@ -27,23 +27,13 @@ namespace Algorithm2.Controllers
         [HttpGet("getPoints")]
         public Points GetPoints()
         {
-            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
-            var cords = new Coordinates[401];
-            var weights = new int[401];
-            var lines = System.IO.File.ReadAllLines("test.txt");
-            var style = NumberStyles.AllowExponent | NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign;
-            for (int i = 0; i < 400; i++)
-            {
-                var line = lines[i + 1].Split(' ');
-                cords[i + 1] = new Coordinates(double.Parse(line[0], style), double.Parse(line[1], style));
-                weights[i + 1] = int.Parse(line[2]);
-            }
+            var (cords, weights) = FileReader.ReadTestData();
 
             var distances = CalculateDistances(cords);
             var points = new Points();
             for (int i = 1; i <= 400; i++)
             {
-                points.points.Add(new Point() { id = i.ToString(), latitude = cords[i].X, longtitude = cords[i].Y, name = "" });
+                points.points.Add(new Point() { id = i.ToString(), latitude = cords[i].X, longtitude = cords[i].Y, name = "", weight = weights[i] });
                 points.neighbours[i.ToString()] = new List<Neighbour>();
                 for (int j = 1; j <= 400; j++)
                 {
@@ -54,6 +44,14 @@ namespace Algorithm2.Controllers
             return points;
 
         }
+
+        [HttpGet("realGetPoints")]
+        public Points GetRealPoints()
+        {
+            var result = FileReader.ReadRealDataToDraw();
+            return result;
+        }
+
 
         public double[,] CalculateDistances(Coordinates[] cords)
         {
@@ -86,7 +84,7 @@ namespace Algorithm2.Controllers
 
         [HttpGet("ils")]
         public PathWithValues GetIls()
-        {            
+        {
             var (cords, weights) = FileReader.ReadTestData();
 
             var distances = CalculateDistances(cords);
@@ -123,6 +121,80 @@ namespace Algorithm2.Controllers
 
 
             return result;
+        }
+
+
+        [HttpGet("flow")]
+        public int EdmondsKarp()
+        {
+            int w = 0;
+            var (connections, distances) = FileReader.ConnectionsForFlow();
+
+            // distances(ij) == r(ij) fmin =1 
+            while (true)
+            {
+                var path = BFS(connections, distances, 1, 6);
+                if (path == null)
+                {
+                    break;
+                }
+
+                w++;
+                for (int i = 0; i < path.Count() - 1; i++)
+                {
+                    distances[(path[i], path[i + 1])] -= 1;
+                    distances[(path[i + 1], path[i])] += 1;
+                }
+            }
+
+
+
+            return w;
+        }
+
+        private List<int> BFS(Dictionary<int, List<int>> connections, Dictionary<(int, int), int> weights, int start, int finish)
+        {
+            var visited = new Dictionary<int, bool>();
+            var previous = new int[202];
+            var queue = new Queue<int>();
+
+            for (int i = 1; i < 202; i++)
+            {
+                visited[i] = false;
+            }
+            visited[start] = true;
+            queue.Enqueue(start);
+
+            while (queue.Count() != 0)
+            {
+                var current = queue.Dequeue();
+                foreach (var item in connections[current])
+                {
+                    if (!visited[item] && weights[(current, item)] > 0)
+                    {
+                        queue.Enqueue(item);
+                        visited[item] = true;
+                        previous[item] = current;
+                    }
+                }
+                if (visited[finish])
+                {
+                    var result = new List<int>();
+                    int toAdd = finish;
+                    while (toAdd != start)
+                    {
+                        result.Add(toAdd);
+                        toAdd = previous[toAdd];
+                    }
+                    result.Add(start);
+
+                    result.Reverse();
+                    return result;
+                }
+            }
+
+            return null;
+
         }
 
         private double[,] Dijkstra(Dictionary<int, List<int>> graph, Dictionary<(int, int), int> weights, int n)

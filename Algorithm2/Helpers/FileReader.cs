@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Algorithm2.Controllers;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -9,7 +10,7 @@ namespace Algorithm2.Helpers
 {
     public static class FileReader
     {
-        public static (Coordinates[],int[]) ReadTestData()
+        public static (Coordinates[], int[]) ReadTestData()
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
 
@@ -77,7 +78,81 @@ namespace Algorithm2.Helpers
                 distances.Add((cityB, cityA), distance);
             }
 
-            return (connections, distances, weights);            
+            return (connections, distances, weights);
+        }
+
+        public static Points ReadRealDataToDraw()
+        {
+            var result = new Points();
+            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
+
+            var cityLines = System.IO.File.ReadAllLines("miasta.txt");
+            int cityCount = cityLines.Count();
+
+            var distances = new Dictionary<(int, int), int>();
+            var connections = new Dictionary<int, List<int>>();
+            int cityIndex = 0;
+            int peopleCount = 0;
+            string cityName = "";
+            double cordX = 0;
+            double cordY = 0;
+
+
+            for (int i = 0; i < cityCount; i++)
+            {
+
+                var line = cityLines[i].Split(' ', '\t');
+
+
+                cityIndex = int.Parse(line[0]);
+                cityName = line[1];
+                peopleCount = int.Parse(line[2]);
+                cordX = double.Parse(line[3]);
+                cordY = double.Parse(line[4]);
+                result.points.Add(new Point()
+                {
+                    id = cityIndex.ToString(),
+                    name = cityName,
+                    latitude = cordX,
+                    longtitude = cordY,
+                    weight = peopleCount
+                });
+            }
+
+            var connectionLines = System.IO.File.ReadAllLines("polaczenia.txt");
+
+            ///te polaczenia jeszcze do ogarnięcia, nie wiem czy będą potrzebne możliwe, że nie 
+
+            return result;
+        }
+
+        public static (Dictionary<int, List<int>>, Dictionary<(int, int),int>) ConnectionsForFlow()
+        {
+            var connectionLines = System.IO.File.ReadAllLines("polaczenia.txt");
+            var distances = new Dictionary<(int, int), int>();
+            var connections = new Dictionary<int, List<int>>();
+            for (int i = 1; i < 201 + 1; i++)
+            {
+                connections.Add(i, new List<int>());
+            }
+
+
+            for (int i = 0; i < connectionLines.Count(); i++)
+            {
+                var connectionLine = connectionLines[i].Split(' ');
+                int cityA = int.Parse(connectionLine[0]);
+                int cityB = int.Parse(connectionLine[1]);
+                connections[cityA].Add(cityB);
+                connections[cityB].Add(cityA);
+                if (distances.ContainsKey((cityA, cityB)))
+                {
+                    continue;
+                }
+                distances.Add((cityA, cityB), 1);
+                distances.Add((cityB, cityA), 1);
+            }
+
+            return (connections, distances);
         }
     }
 }
