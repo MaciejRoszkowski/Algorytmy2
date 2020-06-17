@@ -5,13 +5,14 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Algorithm2.Classes;
+using Algorithm2.Helpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 
 /// <summary>
-/// TODO: zmieniać na 1base index, albo dane mapować z 1base na 0base; algorytmy elegancko ugenerycznić 
-/// 
+/// TODO:   polaczenia
 /// </summary>
 
 
@@ -22,63 +23,29 @@ namespace Algorithm2.Controllers
     public class PathController : ControllerBase
     {
 
-        //[HttpGet]
-        //public PathWithValues Get()
-        //{
-        //    Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
-
-        //    var lines = System.IO.File.ReadAllLines("test.txt");
-        //    var style = NumberStyles.AllowExponent | NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign;
-        //    var cordCount = int.Parse(lines[0]);
-
-        //    var cords = new Coordinates[cordCount];
-        //    var weights = new int[cordCount];
-
-        //    for (int i = 0; i < cordCount; i++)
-        //    {
-        //        var line = lines[i + 1].Split(' ');
-        //        cords[i] = new Coordinates(double.Parse(line[0], style), double.Parse(line[1], style));
-        //        weights[i] = int.Parse(line[2]);
-        //    }
-
-        //    var distances = CalculateDistances(cords);
-
-
-        //    int min = 12500;
-        //    var result = ILS(distances, weights, min, 0);
-
-
-        //    //int min = 12500;
-
-        //    //var result = GeneratePath(distances, weights, min, 0);
-        //    //LocalSearch2Opt(result, distances, weights);
-        //    //LocalSearchInsert(result, distances, weights, min);
-
-        //    return result;
-        //}
 
         [HttpGet("getPoints")]
         public Points GetPoints()
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
-            var cords = new Coordinates[400];
-            var weights = new int[400];
+            var cords = new Coordinates[401];
+            var weights = new int[401];
             var lines = System.IO.File.ReadAllLines("test.txt");
             var style = NumberStyles.AllowExponent | NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign;
             for (int i = 0; i < 400; i++)
             {
                 var line = lines[i + 1].Split(' ');
-                cords[i] = new Coordinates(double.Parse(line[0], style), double.Parse(line[1], style));
-                weights[i] = int.Parse(line[2]);
+                cords[i + 1] = new Coordinates(double.Parse(line[0], style), double.Parse(line[1], style));
+                weights[i + 1] = int.Parse(line[2]);
             }
 
             var distances = CalculateDistances(cords);
             var points = new Points();
-            for (int i = 0; i < 400; i++)
+            for (int i = 1; i <= 400; i++)
             {
                 points.points.Add(new Point() { id = i.ToString(), latitude = cords[i].X, longtitude = cords[i].Y, name = "" });
                 points.neighbours[i.ToString()] = new List<Neighbour>();
-                for (int j = 0; j < 400; j++)
+                for (int j = 1; j <= 400; j++)
                 {
                     points.neighbours[i.ToString()].Add(new Neighbour() { pointId = j.ToString(), weight = distances[i, j] });
 
@@ -106,24 +73,9 @@ namespace Algorithm2.Controllers
         [HttpGet("vns")]
         public PathWithValues GetVns()
         {
-            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
-
-            var lines = System.IO.File.ReadAllLines("test.txt");
-            var style = NumberStyles.AllowExponent | NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign;
-            var cordCount = int.Parse(lines[0]);
-
-            var cords = new Coordinates[cordCount+1];
-            var weights = new int[cordCount+1];
-
-            for (int i = 0; i < cordCount; i++)
-            {
-                var line = lines[i + 1].Split(' ');
-                cords[i + 1] = new Coordinates(double.Parse(line[0], style), double.Parse(line[1], style));
-                weights[i + 1] = int.Parse(line[2]);
-            }
+            var (cords, weights) = FileReader.ReadTestData();
 
             var distances = CalculateDistances(cords);
-
 
             int min = 12500;
             int startingPoint = 1;
@@ -134,26 +86,10 @@ namespace Algorithm2.Controllers
 
         [HttpGet("ils")]
         public PathWithValues GetIls()
-        {
-            Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
-
-            var lines = System.IO.File.ReadAllLines("test.txt");
-            var style = NumberStyles.AllowExponent | NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign;
-            var cordCount = int.Parse(lines[0]);
-
-            var cords = new Coordinates[cordCount + 1];
-            var weights = new int[cordCount + 1];
-
-            //cords[0] = new Coordinates(0, 0);
-            for (int i = 0; i < cordCount; i++)
-            {
-                var line = lines[i + 1].Split(' ');
-                cords[i + 1] = new Coordinates(double.Parse(line[0], style), double.Parse(line[1], style));
-                weights[i + 1] = int.Parse(line[2]);
-            }
+        {            
+            var (cords, weights) = FileReader.ReadTestData();
 
             var distances = CalculateDistances(cords);
-
 
             int min = 12500;
             int startingPoint = 1;
@@ -162,12 +98,79 @@ namespace Algorithm2.Controllers
             return result;
         }
 
+        [HttpGet("realils")]
+        public PathWithValues GetIlsRealData()
+        {
+
+            var (connections, distances, weights) = FileReader.ReadRealData();
+            var distancesArray = Dijkstra(connections, distances, 201);
+
+            var result = ILS(distancesArray, weights, 100000, 2);
 
 
+            return result;
+        }
 
-        //here real data
+
+        [HttpGet("realvns")]
+        public PathWithValues GetVnsRealData()
+        {
+
+            var (connections, distances, weights) = FileReader.ReadRealData();
+            var distancesArray = Dijkstra(connections, distances, 201);
+
+            var result = VNS(distancesArray, weights, 100000, 2);
 
 
+            return result;
+        }
+
+        private double[,] Dijkstra(Dictionary<int, List<int>> graph, Dictionary<(int, int), int> weights, int n)
+        {
+            var distances = new double[n + 1, n + 1];
+            for (int i = 1; i <= n; i++)
+            {
+                var visited = new Dictionary<int, bool>();
+                var d = new int[n + 1];
+                int v;
+
+                for (int j = 1; j <= n; j++)
+                {
+                    visited[j] = false;
+                    d[j] = int.MaxValue;
+                }
+                var start = new int[] { i };
+                d[i] = 0;
+
+                var sortedSet = new SortedSet<int>(start, new Comparer(d));
+
+
+                while (sortedSet.Count > 0)
+                {
+                    v = sortedSet.First();
+                    sortedSet.Remove(v);
+                    visited[v] = true;
+
+
+                    foreach (var item in graph[v])
+                    {
+                        if (!visited[item] && d[v] + weights[(v, item)] < d[item])
+                        {
+                            sortedSet.Remove(item);
+                            d[item] = d[v] + weights[(v, item)];
+                            sortedSet.Add(item);
+                        }
+                    }
+                }
+
+                for (int j = 1; j <= n; j++)
+                {
+                    distances[i, j] = d[j];
+                }
+            }
+
+            return distances;
+        }
 
         private PathWithValues GeneratePath(double[,] distances, int[] weights, int minGain, int startingPoint)
         {
@@ -177,12 +180,13 @@ namespace Algorithm2.Controllers
             {
 
                 var result = GeneratePathSingle(distances, weights, minGain, startingPoint);
+                RecalculateDist(result, distances, weights);
                 if (bestResult.Distance > result.Distance)
                 {
                     bestResult = result;
                 }
             }
-
+            RecalculateDist(bestResult, distances, weights);
             return bestResult;
         }
 
@@ -191,7 +195,7 @@ namespace Algorithm2.Controllers
         {
             var random = new Random();
             var path = new List<int>() { startingPoint };
-            int weightsSum = 0;
+            int weightsSum = weights[startingPoint];
             double pathLength = 0;
             var visited = new Dictionary<int, bool>();
             for (int i = 0; i < weights.Length; i++)
@@ -228,7 +232,10 @@ namespace Algorithm2.Controllers
 
                     }
                 }
-
+                if (bestIndex == 0)
+                {
+                    break;
+                }
                 pathLength += distances[currentPoint, bestIndex];
                 weightsSum += weights[bestIndex];
                 path.Add(bestIndex);
@@ -443,10 +450,6 @@ namespace Algorithm2.Controllers
                         result = tmpT.Clone();
                         RecalculateDist(tmpT, distances, weights);
 
-                        RecalculateDist(result, distances, weights);
-
-
-
                         k = 1;
                     }
                     else
@@ -487,9 +490,6 @@ namespace Algorithm2.Controllers
 
             RecalculateDist(result, distances, weights);
 
-            //LocalSearch2Opt(result, distances, weights);
-            //LocalSearchInsert(result, distances, weights, minGain);
-
             return result;
         }
 
@@ -506,31 +506,31 @@ namespace Algorithm2.Controllers
         }
         private void RecalculateDist(PathWithValues path, double[,] distances, int[] weights)
         {
-            return;
+
             double newDist = 0;
             int newWeight = 0;
+            var visited = new Dictionary<int, bool>();
+
             for (int i = 0; i < path.Nodes.Count - 1; i++)
             {
                 newDist += distances[path.GetNodeAt(i), path.GetNodeAt(i + 1)];
                 newWeight += weights[path.GetNodeAt(i)];
+                if (visited.ContainsKey(path.GetNodeAt(i)))
+                {
+                    throw new Exception();
+                }
+                visited[path.GetNodeAt(i)] = true;
             }
             newDist += distances[path.GetNodeAt(path.Nodes.Count - 1), path.GetNodeAt(0)];
             newWeight += weights[path.GetNodeAt(path.Nodes.Count - 1)];
 
             if (path.Distance != newDist)
             {
-                //asdasfa
-                int a = 1;
                 throw new Exception();
-                //path.Distance = newDist;
-
             }
             if (newWeight != path.WeightsSum)
             {
                 throw new Exception();
-
-                path.WeightsSum = newWeight;
-                int a = 1;
             }
         }
     }
