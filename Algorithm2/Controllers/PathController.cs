@@ -69,41 +69,38 @@ namespace Algorithm2.Controllers
         }
 
         [HttpGet("vns")]
-        public PathWithValues GetVns()
+        public PathWithValues GetVns(int start, int min)
         {
             var (cords, weights) = FileReader.ReadTestData();
 
             var distances = CalculateDistances(cords);
 
-            int min = 12500;
-            int startingPoint = 1;
-            var result = VNS(distances, weights, min, startingPoint);
+
+            var result = VNS(distances, weights, min, start);
 
             return result;
         }
 
         [HttpGet("ils")]
-        public PathWithValues GetIls()
+        public PathWithValues GetIls(int start, int min)
         {
             var (cords, weights) = FileReader.ReadTestData();
 
             var distances = CalculateDistances(cords);
 
-            int min = 12500;
-            int startingPoint = 1;
-            var result = ILS(distances, weights, min, startingPoint);
+            var result = ILS(distances, weights, min, start);
 
             return result;
         }
 
         [HttpGet("realils")]
-        public PathWithValues GetIlsRealData()
+        public PathWithValues GetIlsRealData(int start, int min)
         {
 
             var (connections, distances, weights) = FileReader.ReadRealData();
             var distancesArray = Dijkstra(connections, distances, 201);
 
-            var result = ILS(distancesArray, weights, 100000, 2);
+            var result = ILS(distancesArray, weights, min, start);
 
 
             return result;
@@ -111,13 +108,13 @@ namespace Algorithm2.Controllers
 
 
         [HttpGet("realvns")]
-        public PathWithValues GetVnsRealData()
+        public PathWithValues GetVnsRealData(int start, int min)
         {
 
             var (connections, distances, weights) = FileReader.ReadRealData();
             var distancesArray = Dijkstra(connections, distances, 201);
 
-            var result = VNS(distancesArray, weights, 100000, 2);
+            var result = VNS(distancesArray, weights, min, start);
 
 
             return result;
@@ -125,7 +122,7 @@ namespace Algorithm2.Controllers
 
 
         [HttpGet("flow")]
-        public int EdmondsKarp()
+        public int EdmondsKarp(int start, int end)
         {
             int w = 0;
             var (connections, distances) = FileReader.ConnectionsForFlow();
@@ -133,7 +130,7 @@ namespace Algorithm2.Controllers
             // distances(ij) == r(ij) fmin =1 
             while (true)
             {
-                var path = BFS(connections, distances, 1, 6);
+                var path = BFS(connections, distances, start, end);
                 if (path == null)
                 {
                     break;
@@ -285,6 +282,10 @@ namespace Algorithm2.Controllers
                 if (random.Next(100) == 5)
                 {
                     var listOfNumbers = Enumerable.Range(1, weights.Length - 1).Where(x => !visited[x]).ToList();
+                    if (listOfNumbers.Count() == 0)
+                    {
+                        break;
+                    }
                     bestIndex = listOfNumbers[random.Next(listOfNumbers.Count)];
                 }
                 else
@@ -473,7 +474,17 @@ namespace Algorithm2.Controllers
         {
             RecalculateDist(path, distances, weights);
             var random = new Random();
-            var startingPoint = random.Next(2, path.Nodes.Count - 2 - (degree * 5));
+            int startingPoint = 0;
+            try
+            {
+                startingPoint = random.Next(2, path.Nodes.Count - 2 - (degree * 5));
+
+            }
+            catch (Exception)
+            {
+
+                return;
+            }
 
             var pathCopy = path.CloneNodes();
 
@@ -506,11 +517,11 @@ namespace Algorithm2.Controllers
             var result = GeneratePath(distances, weights, minGain, startingPoint);
             var tmpT = result.Clone();
             LocalSearch(result, distances, weights, minGain);
-            for (int i = 0; i < 300; i++)
+            for (int i = 0; i < 100; i++)
             {
                 int k = 1;
 
-                while (k < 3)
+                while (k <= 3)
                 {
                     RecalculateDist(result, distances, weights);
                     tmpT = result.Clone();
