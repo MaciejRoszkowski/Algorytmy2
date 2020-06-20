@@ -21,7 +21,7 @@ namespace Algorithm2.Helpers
             var cords = new Coordinates[cordCount + 1];
             var weights = new int[cordCount + 1];
 
-            for (int i = 0; i < cordCount; i++)
+            for (var i = 0; i < cordCount; i++)
             {
                 var line = lines[i + 1].Split(' ');
                 cords[i + 1] = new Coordinates(double.Parse(line[0], style), double.Parse(line[1], style));
@@ -36,38 +36,30 @@ namespace Algorithm2.Helpers
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
 
             var cityLines = System.IO.File.ReadAllLines("miasta.txt");
-            int cityCount = cityLines.Count();
-            //var weights = new double[cityCount + 1];
+            var cityCount = cityLines.Count();
             var weights = new int[201 + 1];
             var distances = new Dictionary<(int, int), int>();
             var connections = new Dictionary<int, List<int>>();
-            int cityIndex = 0;
-            int peopleCount = 0;
 
-
-
-            for (int i = 0; i < cityCount; i++)
+            for (var i = 0; i < cityCount; i++)
             {
                 var line = cityLines[i].Split(' ', '\t');
-                cityIndex = int.Parse(line[0]);
-                peopleCount = int.Parse(line[2]);
+                var cityIndex = int.Parse(line[0]);
+                var peopleCount = int.Parse(line[2]);
                 weights[cityIndex] = (int)(0.01 * peopleCount);
             }
-
-            var connectionLines = System.IO.File.ReadAllLines("polaczenia.txt");
-
-            for (int i = 1; i < 201 + 1; i++)
+            for (var i = 1; i < 201 + 1; i++)
             {
                 connections.Add(i, new List<int>());
             }
 
-
-            for (int i = 0; i < connectionLines.Count(); i++)
+            var connectionLines = System.IO.File.ReadAllLines("polaczenia.txt");
+            for (var i = 0; i < connectionLines.Count(); i++)
             {
                 var connectionLine = connectionLines[i].Split(' ');
-                int cityA = int.Parse(connectionLine[0]);
-                int cityB = int.Parse(connectionLine[1]);
-                int distance = (int)double.Parse(connectionLine[2]);
+                var cityA = int.Parse(connectionLine[0]);
+                var cityB = int.Parse(connectionLine[1]);
+                var distance = (int)double.Parse(connectionLine[2]);
                 connections[cityA].Add(cityB);
                 connections[cityB].Add(cityA);
                 if (distances.ContainsKey((cityA, cityB)))
@@ -87,28 +79,17 @@ namespace Algorithm2.Helpers
             Thread.CurrentThread.CurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
 
             var cityLines = System.IO.File.ReadAllLines("miasta.txt");
-            int cityCount = cityLines.Count();
+            var cityCount = cityLines.Count();
 
-            var distances = new Dictionary<(int, int), int>();
-            var connections = new Dictionary<int, List<int>>();
-            int cityIndex = 0;
-            int peopleCount = 0;
-            string cityName = "";
-            double cordX = 0;
-            double cordY = 0;
-
-
-            for (int i = 0; i < cityCount; i++)
+            for (var i = 0; i < cityCount; i++)
             {
-
                 var line = cityLines[i].Split(' ', '\t');
-
-
-                cityIndex = int.Parse(line[0]);
-                cityName = line[1];
-                peopleCount = int.Parse(line[2]);
-                cordX = double.Parse(line[3]);
-                cordY = double.Parse(line[4]);
+                
+                var cityIndex = int.Parse(line[0]);
+                var cityName = line[1];
+                var peopleCount = int.Parse(line[2]);
+                var cordX = double.Parse(line[3]);
+                var cordY = double.Parse(line[4]);
                 result.points.Add(new Point()
                 {
                     id = cityIndex.ToString(),
@@ -119,10 +100,6 @@ namespace Algorithm2.Helpers
                 });
             }
 
-            var connectionLines = System.IO.File.ReadAllLines("polaczenia.txt");
-
-            ///te polaczenia jeszcze do ogarnięcia, nie wiem czy będą potrzebne możliwe, że nie 
-
             return result;
         }
 
@@ -131,17 +108,17 @@ namespace Algorithm2.Helpers
             var connectionLines = System.IO.File.ReadAllLines("polaczenia.txt");
             var distances = new Dictionary<(int, int), int>();
             var connections = new Dictionary<int, List<int>>();
-            for (int i = 1; i < 201 + 1; i++)
+            for (var i = 1; i < 201 + 1; i++)
             {
                 connections.Add(i, new List<int>());
             }
 
 
-            for (int i = 0; i < connectionLines.Count(); i++)
+            for (var i = 0; i < connectionLines.Count(); i++)
             {
                 var connectionLine = connectionLines[i].Split(' ');
-                int cityA = int.Parse(connectionLine[0]);
-                int cityB = int.Parse(connectionLine[1]);
+                var cityA = int.Parse(connectionLine[0]);
+                var cityB = int.Parse(connectionLine[1]);
                 connections[cityA].Add(cityB);
                 connections[cityB].Add(cityA);
                 if (distances.ContainsKey((cityA, cityB)))
