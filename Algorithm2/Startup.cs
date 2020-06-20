@@ -14,6 +14,7 @@ namespace Algorithm2
 {
     public class Startup
     {
+        private readonly string CorsPolicyName = "allowAll"; 
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
@@ -25,6 +26,13 @@ namespace Algorithm2
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
+            services.AddCors(options =>
+            {
+                options.AddPolicy(CorsPolicyName, builder =>
+                {
+                    builder.AllowAnyOrigin().AllowAnyMethod();
+                });
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -35,6 +43,7 @@ namespace Algorithm2
                 app.UseDeveloperExceptionPage();
             }
 
+            app.UseCors(CorsPolicyName);
             app.UseRouting();
 
             app.UseAuthorization();
